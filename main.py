@@ -1,9 +1,11 @@
+import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from multiprocessing import Process
+from pymongo import MongoClient
+from pymongo.server_api import ServerApi
 import urllib.parse
 import mimetypes
 import pathlib
-
 import socket
 
 
@@ -66,7 +68,7 @@ def run_socket():
             print(f'Received data: {data.decode()} from: {address}')
             data_parse = urllib.parse.unquote_plus(data.decode())
             data_dict = {key: value for key, value in [el.split('=') for el in data_parse.split('&')]}
-            print(data_dict)
+            save_mangodb(data_dict)
 
     except KeyboardInterrupt:
         print(f'Destroy server')
@@ -74,9 +76,22 @@ def run_socket():
         sock.close()
 
 
+def save_mangodb(data):
+    client = MongoClient(
+        "mongodb+srv://rodiongroshev:uK5UdDyi615a1jll@clusteredu.obrwfus.mongodb.net/?retryWrites=true&w=majority&appName"
+        "=ClusterEdu",
+        server_api=ServerApi('1')
+    )
+    db = client.book
+    data["time"] = datetime.datetime.now().strftime('"%Y/%m/%d %H:%M:%S.%f"')
+    try:
+        db.hw.insert_one(data)
+    except:
+        print("Something went wrong")
+
+
 if __name__ == '__main__':
     http_server = Process(target=run_http)
-
     socket_server = Process(target=run_socket)
 
     http_server.start()
